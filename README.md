@@ -4,7 +4,7 @@ A modern interpretive programming language based on Go.
 
 **GatoScript** is a lightweight, interpreted programming language built in Go. It features a simple syntax, first-class functions, and a built-in HTTP server for backend development.
 
-Created by **Gabriel Eduardi William Newton**.
+Created by **Gabriel Eduardi Sawori**.
 
 ## 🚀 Features
 
