@@ -1,0 +1,52 @@
+{% extends 'banking/base.html' %}
+
+{% block title %}Transfer Dana{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Transfer Dana</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Rekening Asal</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-sign-out-alt"></i></span>
+                            <input type="text" name="rek_asal" class="form-control" placeholder="Nomor rekening pengirim" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Rekening Tujuan</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-sign-in-alt"></i></span>
+                            <input type="text" name="rek_tujuan" class="form-control" placeholder="Nomor rekening penerima" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Nominal Transfer (Rp)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="number" name="nominal" class="form-control" placeholder="0" min="1000" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-paper-plane me-2"></i> Kirim Uang
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Kembali
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

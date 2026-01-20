@@ -1,0 +1,124 @@
+{% extends 'banking/base.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-md-4 mb-4">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-1">Total Nasabah</h6>
+                        <h2 class="mb-0">{{ total_nasabah }}</h2>
+                    </div>
+                    <i class="fas fa-users fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-1">Total Saldo Bank</h6>
+                        <h2 class="mb-0">Rp {{ total_saldo|intcomma }}</h2>
+                    </div>
+                    <i class="fas fa-vault fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-1">Rekening Aktif</h6>
+                        <h2 class="mb-0">{{ total_rekening }}</h2>
+                    </div>
+                    <i class="fas fa-credit-card fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-history me-2"></i>Transaksi Terakhir</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Nasabah</th>
+                                <th>Jenis</th>
+                                <th>Nominal</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trx in recent_transactions %}
+                            <tr>
+                                <td>{{ trx.waktu|date:"d M Y H:i" }}</td>
+                                <td>
+                                    <div class="fw-bold">{{ trx.rekening.nasabah.nama_lengkap }}</div>
+                                    <small class="text-muted">{{ trx.rekening.no_rekening }}</small>
+                                </td>
+                                <td>
+                                    {% if trx.jenis == 'SETOR' %}
+                                        <span class="badge bg-success">SETOR TUNAI</span>
+                                    {% elif trx.jenis == 'TARIK' %}
+                                        <span class="badge bg-danger">TARIK TUNAI</span>
+                                    {% else %}
+                                        <span class="badge bg-info">TRANSFER</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-bold">Rp {{ trx.nominal|intcomma }}</td>
+                                <td><i class="fas fa-check-circle text-success"></i> Sukses</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">Belum ada transaksi hari ini.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 text-dark fw-bold"><i class="fas fa-bolt me-2"></i>Menu Cepat</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'setor_tunai' %}" class="btn btn-outline-success btn-lg text-start">
+                        <i class="fas fa-plus-circle me-2"></i> Setor Tunai
+                    </a>
+                    <a href="{% url 'tarik_tunai' %}" class="btn btn-outline-danger btn-lg text-start">
+                        <i class="fas fa-minus-circle me-2"></i> Tarik Tunai
+                    </a>
+                    <a href="{% url 'transfer' %}" class="btn btn-outline-primary btn-lg text-start">
+                        <i class="fas fa-paper-plane me-2"></i> Transfer Dana
+                    </a>
+                    <a href="{% url 'tambah_nasabah' %}" class="btn btn-outline-secondary btn-lg text-start">
+                        <i class="fas fa-user-plus me-2"></i> Nasabah Baru
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
