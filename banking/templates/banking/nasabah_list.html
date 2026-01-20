@@ -1,0 +1,54 @@
+{% extends 'banking/base.html' %}
+
+{% block title %}Daftar Nasabah{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-users me-2"></i>Data Nasabah</h5>
+        <a href="{% url 'tambah_nasabah' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus"></i> Tambah Nasabah
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nama Lengkap</th>
+                        <th>NIK</th>
+                        <th>No Telepon</th>
+                        <th>Rekening</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nasabah in nasabah_list %}
+                    <tr>
+                        <td class="fw-bold">{{ nasabah.nama_lengkap }}</td>
+                        <td>{{ nasabah.nik }}</td>
+                        <td>{{ nasabah.no_telepon }}</td>
+                        <td>
+                            {% for rek in nasabah.rekening.all %}
+                                <span class="badge bg-secondary">{{ rek.no_rekening }}</span><br>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for rek in nasabah.rekening.all %}
+                                <a href="{% url 'rekening_detail' rek.no_rekening %}" class="btn btn-info btn-sm text-white" title="Lihat Rekening">
+                                    <i class="fas fa-search"></i>
+                                </a>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">Belum ada data nasabah.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
