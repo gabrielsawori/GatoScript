@@ -67,9 +67,50 @@ class BankingTests(TestCase):
             'nama_lengkap': 'Citra',
             'nik': '1122334455',
             'alamat': 'Jl. C',
-            'no_telepon': '08111222333'
+            'no_telepon': '08111222333',
+            'tipe_akun': 'PRIBADI'
         })
         self.assertTrue(Nasabah.objects.filter(nik='1122334455').exists())
         # Check if rekening is auto created
         nasabah = Nasabah.objects.get(nik='1122334455')
         self.assertTrue(Rekening.objects.filter(nasabah=nasabah).exists())
+        rekening = Rekening.objects.get(nasabah=nasabah)
+        self.assertEqual(rekening.tipe, 'PRIBADI')
+
+    def test_bill_creation_and_payment(self):
+        # 1. Create Business Account
+        nasabah_biz = Nasabah.objects.create(nama_lengkap="PT Biz", nik="999", alamat="Jl Biz", no_telepon="000")
+        rek_biz = Rekening.objects.create(nasabah=nasabah_biz, jenis='PLATINUM', tipe='BISNIS', saldo=0, no_rekening='9999999999')
+
+        # 2. Create Tagihan (via View logic simulation or direct post)
+        response = self.client.post(reverse('buat_tagihan'), {
+            'no_rekening_bisnis': '9999999999',
+            'jenis_layanan': 'INTERNET',
+            'jumlah': '100000',
+            'deskripsi': 'Wifi Bulan Ini'
+        })
+        # Check success message or redirect (usually redirect to same page)
+        self.assertEqual(response.status_code, 302)
+
+        from .models import Tagihan
+        self.assertTrue(Tagihan.objects.filter(pembuat=rek_biz).exists())
+        tagihan = Tagihan.objects.get(pembuat=rek_biz)
+        self.assertEqual(tagihan.jumlah, 100000)
+        self.assertEqual(tagihan.status, 'BELUM')
+
+        # 3. Pay Tagihan
+        # Use existing account self.rekening1 (saldo 100000)
+        # Pay full amount
+        response = self.client.post(reverse('bayar_tagihan'), {
+            'nomor_tagihan': tagihan.nomor_tagihan,
+            'no_rekening_pembayar': '1111111111'
+        })
+        self.assertEqual(response.status_code, 302)
+
+        tagihan.refresh_from_db()
+        self.rekening1.refresh_from_db()
+        rek_biz.refresh_from_db()
+
+        self.assertEqual(tagihan.status, 'LUNAS')
+        self.assertEqual(self.rekening1.saldo, 0) # 100k - 100k
+        self.assertEqual(rek_biz.saldo, 100000) # 0 + 100k

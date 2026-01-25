@@ -101,6 +101,14 @@
         <a href="{% url 'transfer' %}" class="{% if 'transfer' in request.path %}active{% endif %}">
             <i class="fas fa-exchange-alt"></i> Transfer Dana
         </a>
+        <hr style="border-color: #ffffff30; margin: 10px 0;">
+        <div class="px-3 text-uppercase text-muted" style="font-size: 0.8rem; margin-bottom: 5px;">Layanan Tagihan</div>
+        <a href="{% url 'buat_tagihan' %}" class="{% if 'tagihan/buat' in request.path %}active{% endif %}">
+            <i class="fas fa-file-invoice-dollar"></i> Buat Tagihan
+        </a>
+        <a href="{% url 'bayar_tagihan' %}" class="{% if 'tagihan/bayar' in request.path %}active{% endif %}">
+            <i class="fas fa-receipt"></i> Bayar Tagihan
+        </a>
     </div>
 
     <div class="content">

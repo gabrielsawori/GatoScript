@@ -1,0 +1,41 @@
+{% extends 'banking/base.html' %}
+
+{% block title %}Bayar Tagihan{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-receipt me-2"></i> Bayar Tagihan
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">Masukkan Nomor Tagihan yang ingin dibayar.</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Nomor Tagihan</label>
+                        {{ form.nomor_tagihan }}
+                        <div class="form-text">Contoh: INV2310251234</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Bayar Dari Rekening</label>
+                        {{ form.no_rekening_pembayar }}
+                        <div class="form-text">Saldo akan dipotong dari rekening ini.</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-check-circle me-2"></i> Konfirmasi Pembayaran
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
