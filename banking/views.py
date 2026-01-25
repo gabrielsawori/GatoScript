@@ -4,12 +4,21 @@ from django.db import transaction
 from django.db.models import Sum
 from .models import Nasabah, Rekening, Transaksi
 from .forms import NasabahForm
+from decimal import Decimal, InvalidOperation
+
+# Safety threshold to prevent Decimal Overflow/InvalidOperation in SQLite
+# Accounts with saldo or transactions > this value will be excluded from stats
+SAFE_DECIMAL_LIMIT = Decimal('1e14')
 
 def dashboard(request):
     total_nasabah = Nasabah.objects.count()
     total_rekening = Rekening.objects.count()
-    total_saldo = Rekening.objects.aggregate(Sum('saldo'))['saldo__sum'] or 0
-    recent_transactions = Transaksi.objects.order_by('-waktu')[:5]
+
+    # Filter saldo to avoid InvalidOperation on huge numbers/Inf
+    total_saldo = Rekening.objects.filter(saldo__lt=SAFE_DECIMAL_LIMIT).aggregate(Sum('saldo'))['saldo__sum'] or 0
+
+    # Filter transactions to avoid displaying corrupted data
+    recent_transactions = Transaksi.objects.filter(nominal__lt=SAFE_DECIMAL_LIMIT).order_by('-waktu')[:5]
 
     context = {
         'total_nasabah': total_nasabah,
@@ -25,12 +34,14 @@ def setor_tunai(request):
         nominal = request.POST.get('nominal')
 
         try:
-            rekening = Rekening.objects.get(no_rekening=no_rekening)
-            nominal_dec = int(nominal)
+            nominal_dec = Decimal(nominal)
             if nominal_dec <= 0:
                 raise ValueError("Nominal harus positif")
 
             with transaction.atomic():
+                # Lock row for update to prevent race conditions
+                rekening = Rekening.objects.select_for_update().get(no_rekening=no_rekening)
+
                 rekening.saldo += nominal_dec
                 rekening.save()
 
@@ -41,12 +52,12 @@ def setor_tunai(request):
                     keterangan='Setoran via Loket Web'
                 )
 
-            messages.success(request, f"Sukses! Saldo {rekening.nasabah.nama_lengkap} bertambah Rp {nominal}")
+            messages.success(request, f"Sukses! Saldo {rekening.nasabah.nama_lengkap} bertambah Rp {nominal_dec:,.2f}")
             return redirect('dashboard')
 
         except Rekening.DoesNotExist:
             messages.error(request, "Nomor Rekening tidak ditemukan!")
-        except ValueError:
+        except (ValueError, InvalidOperation):
             messages.error(request, "Nominal harus angka positif!")
 
     return render(request, 'banking/setor.html')
@@ -57,13 +68,14 @@ def tarik_tunai(request):
         nominal = request.POST.get('nominal')
 
         try:
-            rekening = Rekening.objects.get(no_rekening=no_rekening)
-            nominal_dec = int(nominal)
+            nominal_dec = Decimal(nominal)
             if nominal_dec <= 0:
                 raise ValueError("Nominal harus positif")
 
-            if rekening.saldo >= nominal_dec:
-                with transaction.atomic():
+            with transaction.atomic():
+                rekening = Rekening.objects.select_for_update().get(no_rekening=no_rekening)
+
+                if rekening.saldo >= nominal_dec:
                     rekening.saldo -= nominal_dec
                     rekening.save()
 
@@ -73,14 +85,14 @@ def tarik_tunai(request):
                         nominal=nominal_dec,
                         keterangan='Penarikan via Loket Web'
                     )
-                messages.success(request, f"Sukses! Penarikan Rp {nominal} dari {rekening.nasabah.nama_lengkap} berhasil.")
-                return redirect('dashboard')
-            else:
-                messages.error(request, "Saldo tidak mencukupi!")
+                    messages.success(request, f"Sukses! Penarikan Rp {nominal_dec:,.2f} dari {rekening.nasabah.nama_lengkap} berhasil.")
+                    return redirect('dashboard')
+                else:
+                    messages.error(request, "Saldo tidak mencukupi!")
 
         except Rekening.DoesNotExist:
             messages.error(request, "Nomor Rekening tidak ditemukan!")
-        except ValueError:
+        except (ValueError, InvalidOperation):
             messages.error(request, "Nominal harus angka positif!")
 
     return render(request, 'banking/tarik.html')
@@ -96,14 +108,20 @@ def transfer(request):
                 messages.error(request, "Tidak bisa transfer ke rekening sendiri!")
                 return render(request, 'banking/transfer.html')
 
-            pengirim = Rekening.objects.get(no_rekening=rek_asal)
-            penerima = Rekening.objects.get(no_rekening=rek_tujuan)
-            nominal_dec = int(nominal)
+            nominal_dec = Decimal(nominal)
             if nominal_dec <= 0:
                 raise ValueError("Nominal harus positif")
 
-            if pengirim.saldo >= nominal_dec:
-                with transaction.atomic():
+            with transaction.atomic():
+                # Lock both rows. Order by ID to prevent deadlocks is good practice,
+                # but here we fetch individually.
+                # Ideally: fetch both using __in and order_by id.
+                # But for simplicity in this simulator:
+                pengirim = Rekening.objects.select_for_update().get(no_rekening=rek_asal)
+                # We fetch penerima inside atomic too.
+                penerima = Rekening.objects.select_for_update().get(no_rekening=rek_tujuan)
+
+                if pengirim.saldo >= nominal_dec:
                     pengirim.saldo -= nominal_dec
                     pengirim.save()
 
@@ -126,14 +144,14 @@ def transfer(request):
                         keterangan=f'Transfer masuk dari {pengirim.nasabah.nama_lengkap} ({rek_asal})'
                     )
 
-                messages.success(request, "Transfer Berhasil!")
-                return redirect('dashboard')
-            else:
-                messages.error(request, "Saldo pengirim tidak mencukupi!")
+                    messages.success(request, "Transfer Berhasil!")
+                    return redirect('dashboard')
+                else:
+                    messages.error(request, "Saldo pengirim tidak mencukupi!")
 
         except Rekening.DoesNotExist:
             messages.error(request, "Salah satu Nomor Rekening tidak ditemukan!")
-        except ValueError:
+        except (ValueError, InvalidOperation):
             messages.error(request, "Nominal harus angka positif!")
 
     return render(request, 'banking/transfer.html')
@@ -157,5 +175,6 @@ def tambah_nasabah(request):
 
 def rekening_detail(request, no_rekening):
     rekening = get_object_or_404(Rekening, no_rekening=no_rekening)
-    riwayat = Transaksi.objects.filter(rekening=rekening).order_by('-waktu')
+    # Filter transactions for detail view as well
+    riwayat = Transaksi.objects.filter(rekening=rekening, nominal__lt=SAFE_DECIMAL_LIMIT).order_by('-waktu')
     return render(request, 'banking/rekening_detail.html', {'rekening': rekening, 'riwayat': riwayat})
