@@ -1,0 +1,51 @@
+{% extends 'banking/base.html' %}
+
+{% block title %}Buat Tagihan Baru{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-file-invoice-dollar me-2"></i> Buat Tagihan Baru
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">Fitur ini khusus untuk Nasabah Bisnis untuk membuat tagihan kepada pelanggan.</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nomor Rekening Bisnis</label>
+                        {{ form.no_rekening_bisnis }}
+                        <div class="form-text">Masukkan nomor rekening bisnis yang akan menerima pembayaran.</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Jenis Layanan</label>
+                            {{ form.jenis_layanan }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Jumlah Tagihan (Rp)</label>
+                            {{ form.jumlah }}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Deskripsi / Keterangan</label>
+                        {{ form.deskripsi }}
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus-circle me-2"></i> Buat Tagihan
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
